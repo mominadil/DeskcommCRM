@@ -1,9 +1,12 @@
 # Builds the English-enabled images for the Sales CRM server (amd64 only, the server is a t3a).
-# Run by hand: Actions > Sales CRM images > Run workflow. Upstream's workflows were removed
-# from this branch so pushes here don't start their CI, e2e and release jobs.
+# Runs on every push to a sales-crm-en-* branch (workflow_dispatch only lists workflows on the
+# default branch). Upstream's workflows were removed from this branch so pushes here don't
+# start their CI, e2e and release jobs.
 name: Sales CRM images
 
 on:
+  push:
+    branches: ["sales-crm-en-*"]
   workflow_dispatch:
     inputs:
       version:
@@ -37,8 +40,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ inputs.version }}-en
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ inputs.version || '1.113.0' }}-en
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          build-args: APP_VERSION=${{ inputs.version }}
+          build-args: APP_VERSION=${{ inputs.version || '1.113.0' }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
