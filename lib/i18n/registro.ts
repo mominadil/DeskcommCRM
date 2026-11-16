@@ -106,7 +106,7 @@ export const REGISTRO_DE_IDIOMAS = [
     subtagsDoNavegador: ["en"],
     // Catálogo em `lib/i18n/traducoes/en.json`, lido por `catalogos.ts` (fatia 4
     // do PROG-022). Aparece quando o nível for promovido.
-    nivel: "em_construcao",
+    nivel: "telas_principais",
     mantenedor: null,
   },
 ] as const satisfies readonly IdiomaRegistrado[];
