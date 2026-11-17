@@ -57,6 +57,14 @@ export const CATALOGO_DE_MODULOS: readonly ModuloCatalogo[] = [
       "próprio, leitura restrita a administradores e sem cartão no funil. Quem não instala " +
       "o módulo não carrega a tabela.",
   },
+  {
+    // Sales CRM fork (migration 8001).
+    slug: "briefs",
+    nome: "Briefings de clientes",
+    descricao:
+      "Questionários de levantamento de requisitos: modelos montados pela equipe e um link sem " +
+      "login para o cliente responder e enviar arquivos.",
+  },
 ];
 
 export function moduloDoCatalogo(slug: string): ModuloCatalogo | undefined {

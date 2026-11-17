@@ -1604,6 +1604,15 @@ export const AUDIT_ACTIONS = [
   // "quem moveu" no painel. Mover roteador em silêncio não existe: as duas
   // camadas são gravadas na mesma operação.
   "ai.router_channel_moved",
+  // Briefs (Sales CRM fork, migration 8001). Metadata carries ids and counts,
+  // never the client's answers: `api_audit_log` is append-only.
+  "brief_template.saved",
+  "brief_template.deleted",
+  "brief.created",
+  "brief.updated",
+  "brief.deleted",
+  "brief.link_renewed",
+  "brief.completed_by_client",
 ] as const;
 
 /** Um código de auditoria. Derivado de `AUDIT_ACTIONS` — não redigite a lista. */

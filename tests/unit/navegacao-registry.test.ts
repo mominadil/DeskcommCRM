@@ -196,6 +196,8 @@ describe("hubSections", () => {
       // #3933: a fila de ligações ativas, ao lado do histórico de chamadas. Só com o módulo ligado.
       "/app/cold-call",
       "/app/comandas",
+      // Sales CRM fork (migration 8001): Briefs, only with the module installed.
+      "/app/briefs",
       "/app/cadencias",
       "/app/products",
       "/app/imports",

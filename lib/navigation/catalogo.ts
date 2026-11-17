@@ -537,6 +537,18 @@ export const NAV_CATALOG = [
     modulo: "financeiro",
   },
   {
+    // Sales CRM fork (migration 8001): client requirement questionnaires. Lives in
+    // the CRM hub like Comandas, so the sidebar does not grow a row.
+    href: "/app/briefs",
+    label: "Briefings",
+    description: "Questionários de requisitos que o cliente responde por um link.",
+    icon: "ClipboardText",
+    group: "crm",
+    section: "O dia a dia da venda",
+    minRole: "viewer",
+    modulo: "briefs",
+  },
+  {
     // O catálogo financeiro: contas, formas de pagamento e plano de contas.
     //
     // Fica em "Sua empresa" pelo mesmo motivo dos tipos de agendamento — é onde

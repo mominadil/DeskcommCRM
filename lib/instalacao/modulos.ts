@@ -68,6 +68,9 @@ export const MODULOS_OPCIONAIS = [
   // `fn_ouvidoria_provisionar`. Sem esta linha a chave da empresa
   // (`settings.ouvidoria.ativa`) ligava uma porta para uma tabela que não existe.
   "ouvidoria",
+  // Sales CRM fork (migration 8001): client requirement questionnaires. Table module:
+  // `brief_templates` and `briefs` exist only where `fn_briefs_provisionar` ran.
+  "briefs",
   "cobranca",
   "login_codex",
   "setores",
@@ -87,7 +90,7 @@ export type ModuloOpcional = (typeof MODULOS_OPCIONAIS)[number];
 
 /** Os módulos de tabela do ADR-0002 dentro de `MODULOS_OPCIONAIS` — resolvidos por
  * `modulos_instalados.estado = 'ativo'`, nunca por `platform_config`. */
-const MODULOS_DE_TABELA = ["honorarios", "financeiro", "lista_de_espera", "cadencias", "ouvidoria"] as const satisfies readonly ModuloOpcional[];
+const MODULOS_DE_TABELA = ["honorarios", "financeiro", "lista_de_espera", "cadencias", "ouvidoria", "briefs"] as const satisfies readonly ModuloOpcional[];
 
 /**
  * Só os módulos por FLAG — os que a tela `/admin/sistema` liga e desliga via
