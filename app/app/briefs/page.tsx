@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ListaDeBriefs, type BriefNaLista, type ModeloNaLista } from "./_lista";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Briefings" };
+export const metadata: Metadata = { title: "Briefs" };
 
 export default async function BriefsPage() {
   const acesso = await acessoDosBriefs();

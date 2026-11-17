@@ -55,7 +55,10 @@ import { IDIOMAS_VISIVEIS, type IdiomaVisivel } from "./registro";
 export type Idioma = IdiomaVisivel["codigo"];
 export const IDIOMAS: readonly Idioma[] = IDIOMAS_VISIVEIS.map((idioma) => idioma.codigo);
 
-export const IDIOMA_PADRAO: Idioma = "pt-BR";
+// Sales CRM fork: English for anyone without a saved preference, including link-preview
+// bots (WhatsApp, Slack) that send no Accept-Language. Upstream is "pt-BR". The dictionary
+// keys stay Portuguese; English comes from the dictionary and traducoes/en.json.
+export const IDIOMA_PADRAO: Idioma = "en";
 
 /**
  * O que veio do perfil é um idioma que sabemos servir?

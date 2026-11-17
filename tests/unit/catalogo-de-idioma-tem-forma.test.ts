@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { enUS, tr, zhCN } from "date-fns/locale";
 import { describe, expect, it } from "vitest";
 
-import { IDIOMA_PADRAO, IDIOMAS } from "@/lib/i18n/idiomas";
+import { IDIOMAS } from "@/lib/i18n/idiomas";
 import { REGISTRO_DE_IDIOMAS } from "@/lib/i18n/registro";
 
 /**
@@ -48,7 +48,8 @@ describe("todo catálogo de idioma", () => {
   it.each(catalogos)("$codigo: é de um idioma registrado, e não do padrão", ({ codigo }) => {
     expect(REGISTRO_DE_IDIOMAS.map((idioma) => idioma.codigo)).toContain(codigo);
     // Em português a chave É o texto: um catálogo pt-BR só poderia divergir dela.
-    expect(codigo).not.toBe(IDIOMA_PADRAO);
+    // Sales CRM fork: the default is English, so the rule is about the KEY language, pt-BR.
+    expect(codigo).not.toBe("pt-BR");
   });
 
   it.each(catalogos)("$codigo: é plano, de texto para texto não vazio", ({ entradas }) => {

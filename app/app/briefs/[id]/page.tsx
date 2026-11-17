@@ -7,7 +7,7 @@ import { briefDaOrganizacao } from "@/lib/briefs/servidor";
 import { TelaDoBrief } from "./_tela";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Briefing" };
+export const metadata: Metadata = { title: "Brief" };
 
 export default async function BriefPage({ params }: { params: Promise<{ id: string }> }) {
   const acesso = await acessoDosBriefs();

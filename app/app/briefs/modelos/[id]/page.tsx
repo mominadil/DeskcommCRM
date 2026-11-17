@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TelaDoModelo } from "./_tela";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Modelo de briefing" };
+export const metadata: Metadata = { title: "Brief template" };
 
 export default async function ModeloPage({ params }: { params: Promise<{ id: string }> }) {
   const acesso = await acessoDosBriefs();
