@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { registrarFalhaDeToken, tokenFailureLimited } from "@/lib/auth/rate-limit";
+import { temPaginaPropria } from "@/lib/briefs/paginas";
 import { briefPeloToken } from "@/lib/briefs/servidor";
 import { marcaDaSaida } from "@/lib/branding/saida";
 import { IdiomaProvider } from "@/lib/i18n/IdiomaProvider";
@@ -29,6 +30,7 @@ export default async function BriefPublicoPage({ params }: { params: Promise<{ t
     await registrarFalhaDeToken(token);
     notFound();
   }
+  if (temPaginaPropria(brief.id)) redirect(`/brief/${token}/original`);
 
   const [{ data: organizacao }, marca] = await Promise.all([
     createAdminClient().from("organizations").select("locale").eq("id", brief.organization_id).maybeSingle(),

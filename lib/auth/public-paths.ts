@@ -47,6 +47,7 @@ export const PUBLIC_PATHS: RegExp[] = [
   // Briefs (Sales CRM fork): the client fills the questionnaire with no login. The
   // UUID share token is the only key; every route re-checks it and rate-limits misses.
   /^\/brief\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/brief\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/original$/i,
   /^\/api\/v1\/briefs\/publico\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(secoes\/[a-z0-9_-]{1,64}|upload|concluir|arquivo)$/i,
   /^\/api\/v1\/webhooks\//,
   /^\/api\/v1\/cron\//,
