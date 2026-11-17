@@ -334,7 +334,8 @@ async function MarcaDosClientComponents({ children }: { children: React.ReactNod
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="pt-BR"
+      // Sales CRM fork: matches IDIOMA_PADRAO; IdiomaProvider sets the signed-in user's language after load.
+      lang="en"
       data-theme="light"
       suppressHydrationWarning
       className={`${atkinson.variable} ${plexMono.variable}`}
