@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Download, ExternalLink, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
+import { Copy, Download, ExternalLink, FileArchive, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,6 +42,10 @@ export function TelaDoBrief(props: { brief: BriefCompleto; podeEditar: boolean; 
   useEffect(() => setOrigem(window.location.origin), []);
   const link = `${origem}/brief/${token}`;
   const { total, respondidas } = progressoDoBrief(b.secoes, b.respostas);
+  const totalDeArquivos = Object.values(b.respostas).reduce(
+    (n, r) => n + Object.values(r?.files ?? {}).reduce((m, lista) => m + lista.length, 0),
+    0,
+  );
 
   async function salvarCabecalho() {
     const r = await salvarBrief(b.id, { titulo, cliente: cliente || null, intro: intro || null });
@@ -144,6 +148,13 @@ export function TelaDoBrief(props: { brief: BriefCompleto; podeEditar: boolean; 
                 <FileSpreadsheet className="size-4" /> {t("Exportar Excel")}
               </a>
             </Button>
+            {totalDeArquivos ? (
+              <Button variant="outline" asChild>
+                <a href={`/api/v1/briefs/${b.id}/arquivos`}>
+                  <FileArchive className="size-4" /> {t("Baixar todos os arquivos")} ({totalDeArquivos})
+                </a>
+              </Button>
+            ) : null}
             <Button variant="ghost" onClick={exportar}>
               <Download className="size-4" /> {t("Exportar texto")}
             </Button>

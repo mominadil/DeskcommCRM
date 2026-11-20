@@ -5,7 +5,7 @@
  */
 import path from "node:path";
 
-import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Link, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 
 import { linhasDaExportacao, type DadosDaExportacao } from "./exportar-xlsx";
@@ -37,6 +37,7 @@ const estilo = StyleSheet.create({
   rotulo: { fontWeight: 700 },
   vazio: { color: "#999" },
   anotado: { fontSize: 9, color: "#666", marginBottom: 2 },
+  arquivo: { fontSize: 9, color: "#0563C1", textDecoration: "none", marginLeft: 8 },
   rodape: { position: "absolute", bottom: 22, left: 44, right: 44, fontSize: 8, color: "#999", flexDirection: "row", justifyContent: "space-between" },
 });
 
@@ -78,11 +79,24 @@ function DocumentoDoBrief({ d, exportadoEm }: { d: DadosDaExportacao; exportadoE
                     {l.link}
                   </Text>
                 ) : null}
-                {l.arquivos ? (
-                  <Text>
-                    <Text style={estilo.rotulo}>Files: </Text>
-                    {l.arquivos}
-                  </Text>
+                {l.arquivos.length ? (
+                  <View>
+                    <Text style={estilo.rotulo}>
+                      Files ({l.arquivos.length}){l.arquivos.some((a) => a.url) ? ", click to open (CRM login required)" : ""}:
+                    </Text>
+                    {/* One per line: a list of camera names wrapped mid-word was unreadable. */}
+                    {l.arquivos.map((a, i) =>
+                      a.url ? (
+                        <Link key={i} src={a.url} style={estilo.arquivo}>
+                          • {a.nome}
+                        </Link>
+                      ) : (
+                        <Text key={i} style={estilo.arquivo}>
+                          • {a.nome}
+                        </Text>
+                      ),
+                    )}
+                  </View>
                 ) : null}
               </View>
             </View>

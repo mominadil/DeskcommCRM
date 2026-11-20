@@ -7,7 +7,9 @@ import { audit } from "@/lib/audit";
 import { requireRole } from "@/lib/auth/require-role";
 import { pdfDasRespostas } from "@/lib/briefs/exportar-pdf";
 import { planilhaDasRespostas, type DadosDaExportacao } from "@/lib/briefs/exportar-xlsx";
+import { disposicaoDoDownload } from "@/lib/briefs/nome-do-download";
 import { briefDaOrganizacao, seBriefsDesligado } from "@/lib/briefs/servidor";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +39,7 @@ export async function GET(req: NextRequest, ctx: RouteCtx): Promise<Response> {
   const { id } = await ctx.params;
   const brief = await briefDaOrganizacao(id, authz.org.orgId);
   if (!brief) return fail("not_found", "Not found.", 404, { requestId });
+  const base = (env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/+$/, "") || req.nextUrl.origin;
 
   const dados: DadosDaExportacao = {
     titulo: brief.titulo,
@@ -44,8 +47,9 @@ export async function GET(req: NextRequest, ctx: RouteCtx): Promise<Response> {
     status: STATUS[brief.status] ?? brief.status,
     secoes: brief.secoes,
     respostas: brief.respostas,
+    // Links open through the staff route, so a forwarded export still needs a CRM login.
+    linkDoArquivo: (path) => `${base}/app/briefs/${brief.id}/arquivo?path=${encodeURIComponent(path)}`,
   };
-  const nome = `${brief.titulo}${brief.cliente ? ` - ${brief.cliente}` : ""}`.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "brief";
 
   let corpo: Uint8Array;
   try {
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest, ctx: RouteCtx): Promise<Response> {
     headers: {
       "Content-Type":
         formato === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${nome}-answers.${formato}"`,
+      "Content-Disposition": disposicaoDoDownload(brief.titulo, brief.cliente, `answers.${formato}`),
       "Cache-Control": "no-store",
       "X-Request-Id": requestId,
     },

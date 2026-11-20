@@ -1,7 +1,8 @@
 /**
  * A brief's answers as an .xlsx workbook, written by hand: an .xlsx is a zip of a
  * few XML files, and `fflate` is already a dependency, so no spreadsheet library.
- * Sheet "Answers" has one row per question; sheet "Summary" has the brief itself.
+ * "Answers" has one row per question, "Files" one row per upload (the name is a
+ * link that opens the file after logging in to the CRM), "Summary" the brief.
  */
 import { strToU8, zipSync } from "fflate";
 
@@ -13,6 +14,8 @@ export type DadosDaExportacao = {
   status: string;
   secoes: Secao[];
   respostas: Record<string, RespostaDaSecao | undefined>;
+  /** Builds the link that opens one uploaded file in the CRM (staff login required). */
+  linkDoArquivo?: (path: string) => string;
 };
 
 const TIPO: Record<string, string> = {
@@ -30,6 +33,7 @@ export function linhasDaExportacao(d: DadosDaExportacao) {
     const r = d.respostas[s.id] ?? { v: {}, files: {} };
     return s.q.map((p, qi) => {
       const a = r.v[p.id];
+      const arquivos = (r.files[p.id] ?? []).map((f) => ({ nome: f.name, url: d.linkDoArquivo?.(f.path) ?? null }));
       return {
         secao: `${si + 1}. ${s.t}`,
         numero: `${si + 1}.${qi + 1}`,
@@ -38,7 +42,7 @@ export function linhasDaExportacao(d: DadosDaExportacao) {
         resposta: Array.isArray(a) ? a.join(", ") : String(a ?? "").trim(),
         nota: String(r.v[`${p.id}__note`] ?? "").trim(),
         link: String(r.v[`${p.id}__link`] ?? "").trim(),
-        arquivos: (r.files[p.id] ?? []).map((f) => f.name).join(", "),
+        arquivos,
         anotado: p.found ?? "",
         respondida: perguntaRespondida(p, r),
       };
@@ -67,14 +71,26 @@ const coluna = (i: number) => {
   return s;
 };
 
-/** A worksheet of inline strings. Style 1 = bold header, style 2 = wrapped body text. */
-function planilha(linhas: string[][], larguras: number[], comCabecalho: boolean): string {
+type Celula = string | { texto: string; url: string };
+
+/**
+ * A worksheet of inline strings. Styles: 1 = bold header, 2 = wrapped text, 3 = link.
+ * Links go in the sheet's own relationships file, which has no length limit
+ * (the HYPERLINK() formula caps the address at 255 characters).
+ */
+function planilha(linhas: Celula[][], larguras: number[], comCabecalho: boolean) {
+  const links: { ref: string; url: string }[] = [];
   const cols = larguras.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("");
   const rows = linhas
     .map((linha, r) => {
-      const estilo = comCabecalho && r === 0 ? 1 : 2;
       const cells = linha
-        .map((v, c) => `<c r="${coluna(c)}${r + 1}" t="inlineStr" s="${estilo}"><is><t xml:space="preserve">${xml(v)}</t></is></c>`)
+        .map((v, c) => {
+          const ref = `${coluna(c)}${r + 1}`;
+          const texto = typeof v === "string" ? v : v.texto;
+          const estilo = comCabecalho && r === 0 ? 1 : typeof v === "string" ? 2 : 3;
+          if (typeof v !== "string") links.push({ ref, url: v.url });
+          return `<c r="${ref}" t="inlineStr" s="${estilo}"><is><t xml:space="preserve">${xml(texto)}</t></is></c>`;
+        })
         .join("");
       return `<row r="${r + 1}">${cells}</row>`;
     })
@@ -82,11 +98,25 @@ function planilha(linhas: string[][], larguras: number[], comCabecalho: boolean)
   const congelar = comCabecalho
     ? '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
     : "";
-  return (
+  const hiperlinks = links.length
+    ? `<hyperlinks>${links.map((l, i) => `<hyperlink ref="${l.ref}" r:id="rId${i + 1}"/>`).join("")}</hyperlinks>`
+    : "";
+  const folha =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    `${congelar}<cols>${cols}</cols><sheetData>${rows}</sheetData></worksheet>`
-  );
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    `${congelar}<cols>${cols}</cols><sheetData>${rows}</sheetData>${hiperlinks}</worksheet>`;
+  const relacoes = links.length
+    ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      links
+        .map(
+          (l, i) =>
+            `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xml(l.url)}" TargetMode="External"/>`,
+        )
+        .join("") +
+      "</Relationships>"
+    : null;
+  return { folha, relacoes };
 }
 
 export function planilhaDasRespostas(d: DadosDaExportacao, exportadoEm = new Date()): Uint8Array {
@@ -96,9 +126,29 @@ export function planilhaDasRespostas(d: DadosDaExportacao, exportadoEm = new Dat
   const respostas = planilha(
     [
       ["Section", "No.", "Question", "Type", "Answer", "Note", "Link", "Files", "What we noted"],
-      ...linhas.map((l) => [l.secao, l.numero, l.pergunta, l.tipo, l.resposta, l.nota, l.link, l.arquivos, l.anotado]),
+      ...linhas.map((l) => [
+        l.secao,
+        l.numero,
+        l.pergunta,
+        l.tipo,
+        l.resposta,
+        l.nota,
+        l.link,
+        l.arquivos.length ? `${l.arquivos.length} file(s), see the Files sheet` : "",
+        l.anotado,
+      ]),
     ],
-    [26, 6, 50, 14, 50, 36, 32, 30, 36],
+    [26, 6, 50, 14, 50, 36, 32, 22, 36],
+    true,
+  );
+  const arquivos = planilha(
+    [
+      ["Section", "No.", "Question", "File (click to open)"],
+      ...linhas.flatMap((l) =>
+        l.arquivos.map((a): Celula[] => [l.secao, l.numero, l.pergunta, a.url ? { texto: a.nome, url: a.url } : a.nome]),
+      ),
+    ],
+    [26, 6, 50, 50],
     true,
   );
   const resumo = planilha(
@@ -107,21 +157,27 @@ export function planilhaDasRespostas(d: DadosDaExportacao, exportadoEm = new Dat
       ["Client", d.cliente ?? ""],
       ["Status", d.status],
       ["Answered", `${respondidas} of ${total}`],
+      ["Files", String(linhas.reduce((n, l) => n + l.arquivos.length, 0))],
       ["Exported", exportadoEm.toISOString().slice(0, 16).replace("T", " ") + " UTC"],
     ],
     [14, 60],
     false,
   );
 
-  const arquivos: Record<string, Uint8Array> = {
+  const folhas = [
+    { nome: "Answers", ...respostas },
+    { nome: "Files", ...arquivos },
+    { nome: "Summary", ...resumo },
+  ];
+  const tipoDaFolha = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml";
+  const zip: Record<string, Uint8Array> = {
     "[Content_Types].xml": strToU8(
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
         '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
         '<Default Extension="xml" ContentType="application/xml"/>' +
         '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
-        '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+        folhas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${tipoDaFolha}"/>`).join("") +
         '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
         "</Types>",
     ),
@@ -133,33 +189,42 @@ export function planilhaDasRespostas(d: DadosDaExportacao, exportadoEm = new Dat
     ),
     "xl/workbook.xml": strToU8(
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-        '<sheets><sheet name="Answers" sheetId="1" r:id="rId1"/><sheet name="Summary" sheetId="2" r:id="rId2"/></sheets></workbook>',
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+        folhas.map((f, i) => `<sheet name="${f.nome}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") +
+        "</sheets></workbook>",
     ),
     "xl/_rels/workbook.xml.rels": strToU8(
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>' +
-        '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        folhas
+          .map(
+            (_, i) =>
+              `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`,
+          )
+          .join("") +
+        `<Relationship Id="rId${folhas.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
         "</Relationships>",
     ),
     "xl/styles.xml": strToU8(
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-        '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+        '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font>' +
+        '<font><u/><sz val="11"/><color rgb="FF0563C1"/><name val="Calibri"/></font></fonts>' +
         '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
         '<fill><patternFill patternType="solid"><fgColor rgb="FFF1F1F1"/><bgColor indexed="64"/></patternFill></fill></fills>' +
         '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
         '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-        '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+        '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
         '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
-        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>' +
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf></cellXfs>' +
         '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
         "</styleSheet>",
     ),
-    "xl/worksheets/sheet1.xml": strToU8(respostas),
-    "xl/worksheets/sheet2.xml": strToU8(resumo),
   };
-  return zipSync(arquivos, { level: 6 });
+  folhas.forEach((f, i) => {
+    zip[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(f.folha);
+    if (f.relacoes) zip[`xl/worksheets/_rels/sheet${i + 1}.xml.rels`] = strToU8(f.relacoes);
+  });
+  return zipSync(zip, { level: 6 });
 }

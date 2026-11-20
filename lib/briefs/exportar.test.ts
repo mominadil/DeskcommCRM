@@ -28,16 +28,27 @@ const dados: DadosDaExportacao = {
       files: { photos: [{ path: "o/b/theon/photos/1-a.png", name: "a.png", type: "image/png", size: 10 }] },
     },
   },
+  linkDoArquivo: (path) => `https://crm.example/api/v1/briefs/b/arquivo?path=${encodeURIComponent(path)}`,
 };
 
 describe("Excel export", () => {
   const zip = unzipSync(planilhaDasRespostas(dados, new Date("2026-11-20T10:00:00Z")));
 
-  it("is a workbook with an Answers and a Summary sheet", () => {
+  it("is a workbook with Answers, Files and Summary sheets", () => {
     expect(Object.keys(zip)).toEqual(
-      expect.arrayContaining(["[Content_Types].xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml", "xl/styles.xml"]),
+      expect.arrayContaining(["[Content_Types].xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml", "xl/worksheets/sheet3.xml", "xl/styles.xml"]),
     );
-    expect(strFromU8(zip["xl/workbook.xml"]!)).toContain('name="Answers"');
+    const libro = strFromU8(zip["xl/workbook.xml"]!);
+    expect(libro).toContain('name="Answers"');
+    expect(libro).toContain('name="Files"');
+  });
+
+  it("lists each file with a clickable link in the Files sheet", () => {
+    expect(strFromU8(zip["xl/worksheets/sheet2.xml"]!)).toMatch(/<hyperlink ref="D2" r:id="rId1"\/>/);
+    expect(strFromU8(zip["xl/worksheets/sheet2.xml"]!)).toContain("a.png");
+    expect(strFromU8(zip["xl/worksheets/_rels/sheet2.xml.rels"]!)).toContain(
+      'Target="https://crm.example/api/v1/briefs/b/arquivo?path=o%2Fb%2Ftheon%2Fphotos%2F1-a.png" TargetMode="External"',
+    );
   });
 
   it("has one row per question, with answer, note, link, files and what we noted", () => {
@@ -45,7 +56,7 @@ describe("Excel export", () => {
     expect(folha.match(/<row /g)).toHaveLength(4); // header + 3 questions
     expect(folha).toContain("₹1,999 (MRP ₹3,499)");
     expect(folha).toContain("https://drive.google.com/x");
-    expect(folha).toContain("a.png");
+    expect(folha).toContain("1 file(s), see the Files sheet");
   });
 
   it("escapes markup and drops control characters Excel would reject", () => {
@@ -56,7 +67,7 @@ describe("Excel export", () => {
   });
 
   it("the summary counts answered questions", () => {
-    const resumo = strFromU8(zip["xl/worksheets/sheet2.xml"]!);
+    const resumo = strFromU8(zip["xl/worksheets/sheet3.xml"]!);
     expect(resumo).toContain("3 of 3");
     expect(resumo).toContain("Aumèra");
     if (process.env.BRIEF_EXPORT_SAMPLE) writeFileSync(`${process.env.BRIEF_EXPORT_SAMPLE}.xlsx`, planilhaDasRespostas(dados));
