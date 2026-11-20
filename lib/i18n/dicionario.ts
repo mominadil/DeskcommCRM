@@ -44,6 +44,9 @@ type Traducoes = Record<string, Partial<Record<Exclude<Idioma, "pt-BR">, string>
 
 export const DICIONARIO: Traducoes = {
   // Briefs (Sales CRM fork, migration 8001).
+  "Exportar PDF": {"es": "Exportar PDF", "en": "Export PDF"},
+  "Exportar Excel": {"es": "Exportar Excel", "en": "Export Excel"},
+  "Exportar texto": {"es": "Exportar texto", "en": "Export text"},
   "Adicionar modelo: reformulação de site": {"es": "Añadir plantilla: rediseño de sitio", "en": "Add template: website revamp"},
   "Adicionar seção": {"es": "Añadir sección", "en": "Add section"},
   "Adicionar uma observação": {"es": "Añadir una nota", "en": "Add a note"},

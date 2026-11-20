@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Download, ExternalLink, RefreshCw } from "lucide-react";
+import { Copy, Download, ExternalLink, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -134,8 +134,18 @@ export function TelaDoBrief(props: { brief: BriefCompleto; podeEditar: boolean; 
 
         <TabsContent value="respostas" className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={exportar}>
-              <Download className="size-4" /> {t("Exportar respostas")}
+            <Button variant="outline" asChild>
+              <a href={`/api/v1/briefs/${b.id}/exportar?formato=pdf`}>
+                <FileText className="size-4" /> {t("Exportar PDF")}
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={`/api/v1/briefs/${b.id}/exportar?formato=xlsx`}>
+                <FileSpreadsheet className="size-4" /> {t("Exportar Excel")}
+              </a>
+            </Button>
+            <Button variant="ghost" onClick={exportar}>
+              <Download className="size-4" /> {t("Exportar texto")}
             </Button>
             {props.podeEditar && status !== "concluido" ? (
               <Button variant="outline" onClick={() => mudarStatus("concluido")}>

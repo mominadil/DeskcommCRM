@@ -1613,6 +1613,8 @@ export const AUDIT_ACTIONS = [
   "brief.deleted",
   "brief.link_renewed",
   "brief.completed_by_client",
+  // A download of the client's answers (PDF or Excel). Metadata: the format only.
+  "brief.exported",
 ] as const;
 
 /** Um código de auditoria. Derivado de `AUDIT_ACTIONS` — não redigite a lista. */
